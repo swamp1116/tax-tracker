@@ -911,7 +911,7 @@ tbody td {
             <div class="tax-icon" style="background:var(--green-light)">🏥</div>
             <div class="tax-item-info">
               <div class="tax-item-name">건강보험료</div>
-              <div class="tax-item-desc">소득 기반 지역가입자</div>
+              <div class="tax-item-desc">소득 × 7.09% + 장기요양 12.95%</div>
             </div>
             <div>
               <div class="tax-item-amount green" id="healthAmount">0원</div>
@@ -1132,9 +1132,19 @@ function calcTaxes(year) {
     itDesc = `과세표준 ${fmt(taxableIncome)} 기준`;
   }
 
-  // 건강보험 (지역가입자): 소득 × 약 7.09% (2024년 기준)
-  const netForSocial = Math.max(0, totalIncome - totalExpense);
-  health = Math.round(netForSocial * 0.0709);
+  // 건강보험 (지역가입자)
+  // 경비가 없으면 업종별 단순경비율 적용 (서비스업 평균 64.1% 적용)
+  let netForSocial;
+  if (totalExpense > 0) {
+    netForSocial = Math.max(0, totalIncome - totalExpense);
+  } else {
+    // 단순경비율 64.1% → 소득율 35.9%
+    netForSocial = Math.max(0, Math.round(totalIncome * 0.359));
+  }
+  // 건강보험료 7.09% + 장기요양보험료 (건보료 × 12.95%)
+  const healthBase = Math.round(netForSocial * 0.0709);
+  const longTermCare = Math.round(healthBase * 0.1295);
+  health = healthBase + longTermCare;
 
   // 국민연금: 소득 × 9%, 상한 5,530,000/월 × 12
   const pensionBase = Math.min(netForSocial, 66360000);
