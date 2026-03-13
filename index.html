@@ -3,1026 +3,583 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>세금지갑 — 개인사업자 세금 트래커</title>
+<title>세금계산기 — 개인사업자</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f5f3ee;
-  --surface: #ffffff;
-  --surface2: #f0ede6;
-  --border: #e2ddd4;
-  --ink: #1a1814;
-  --ink2: #6b6560;
-  --ink3: #a09890;
-  --accent: #d4521a;
-  --accent-light: #fdf1eb;
-  --green: #1a7a4a;
-  --green-light: #ebf7f1;
-  --blue: #1a4a8a;
-  --blue-light: #ebf0f9;
-  --yellow: #c8940a;
-  --yellow-light: #fdf6e3;
+  --bg: #f5f3ee; --surface: #fff; --surface2: #f0ede6; --border: #e2ddd4;
+  --ink: #1a1814; --ink2: #6b6560; --ink3: #a09890;
+  --accent: #d4521a; --accent-light: #fdf1eb;
+  --green: #1a7a4a; --green-light: #ebf7f1;
+  --blue: #1a4a8a; --blue-light: #ebf0f9;
+  --yellow: #c8940a; --yellow-light: #fdf6e3;
+  --purple: #6a3aaa; --purple-light: #f3eeff;
   --shadow: 0 2px 12px rgba(26,24,20,0.08);
   --shadow-lg: 0 8px 32px rgba(26,24,20,0.12);
   --nav-h: 64px;
-  --top-h: 56px;
 }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--ink); }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+/* TOPBAR */
+.topbar { background:var(--ink); color:#fff; padding:0 20px; height:52px; display:flex; align-items:center; gap:10px; position:fixed; top:0; left:0; right:0; z-index:100; }
+.topbar-logo { font-size:18px; font-weight:900; letter-spacing:-1px; }
+.topbar-logo span { color:var(--accent); }
+.topbar-year { margin-left:auto; font-size:12px; color:rgba(255,255,255,0.4); font-family:'DM Mono',monospace; }
 
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  min-height: 100vh;
-  min-height: 100dvh;
-  overflow-x: hidden;
-}
+/* TYPE BAR */
+.type-bar { position:fixed; top:52px; left:0; right:0; background:var(--surface); border-bottom:1px solid var(--border); display:flex; z-index:99; padding:8px 16px; gap:6px; }
+.type-btn { flex:1; padding:8px 2px; border:1.5px solid var(--border); background:transparent; color:var(--ink2); font-size:11px; font-weight:600; border-radius:8px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all .15s; white-space:nowrap; }
+.type-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 
-/* ===== TOPBAR ===== */
-.topbar {
-  background: var(--ink);
-  color: #fff;
-  padding: 0 16px;
-  height: var(--top-h);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.topbar-logo {
-  font-size: 20px;
-  font-weight: 900;
-  letter-spacing: -1px;
-  color: #fff;
-}
-.topbar-logo span { color: var(--accent); }
-.topbar-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.year-badge {
-  font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  font-family: 'DM Mono', monospace;
-  background: rgba(255,255,255,0.08);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
+/* PAGES */
+.pages { position:fixed; top:108px; left:0; right:0; bottom:var(--nav-h); overflow:hidden; }
+.page { position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 32px; display:none; }
+.page.active { display:block; }
 
-/* 사업자 유형 선택 - 토글 드롭다운 */
-.type-dropdown {
-  position: relative;
-}
-.type-current {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Noto Sans KR', sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.type-current::after {
-  content: '▾';
-  font-size: 10px;
-}
-.type-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  display: none;
-  min-width: 150px;
-  z-index: 200;
-}
-.type-menu.open { display: block; }
-.type-menu-item {
-  padding: 12px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink2);
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
-}
-.type-menu-item:last-child { border-bottom: none; }
-.type-menu-item:hover, .type-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+/* BOTTOM NAV */
+.bottom-nav { position:fixed; bottom:0; left:0; right:0; height:var(--nav-h); background:var(--surface); border-top:1px solid var(--border); display:flex; z-index:100; padding-bottom:env(safe-area-inset-bottom); }
+.nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:none; background:transparent; cursor:pointer; font-family:'Noto Sans KR',sans-serif; color:var(--ink3); font-size:10px; font-weight:500; transition:color .15s; padding:8px 0; }
+.nav-btn.active { color:var(--accent); }
+.nav-icon { font-size:20px; line-height:1; }
 
-/* ===== 탭 콘텐츠 ===== */
-.page { display: none; padding-bottom: calc(var(--nav-h) + 16px); }
-.page.active { display: block; }
+/* HOME */
+.reserve-hero { background:var(--ink); border-radius:20px; padding:24px 20px; margin-bottom:14px; color:#fff; position:relative; overflow:hidden; }
+.reserve-hero::before { content:''; position:absolute; top:-40px; right:-40px; width:160px; height:160px; background:rgba(212,82,26,0.15); border-radius:50%; }
+.reserve-hero-label { font-size:12px; color:rgba(255,255,255,0.5); font-weight:500; margin-bottom:6px; }
+.reserve-hero-amount { font-size:36px; font-weight:900; font-family:'DM Mono',monospace; letter-spacing:-2px; color:var(--accent); line-height:1.1; }
+.reserve-hero-sub { font-size:12px; color:rgba(255,255,255,0.4); margin-top:6px; }
+.reserve-hero-monthly { margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; }
+.reserve-hero-monthly span { font-size:12px; color:rgba(255,255,255,0.5); }
+.reserve-hero-monthly strong { font-size:16px; font-weight:700; color:#fff; font-family:'DM Mono',monospace; }
 
-/* ===== 홈 탭 ===== */
-.home-hero {
-  background: var(--ink);
-  color: #fff;
-  padding: 20px 16px 24px;
-}
-.hero-label {
-  font-size: 11px;
-  color: rgba(255,255,255,0.5);
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.hero-amount {
-  font-size: 36px;
-  font-weight: 900;
-  font-family: 'DM Mono', monospace;
-  letter-spacing: -2px;
-  color: var(--accent);
-  line-height: 1;
-}
-.hero-sub {
-  font-size: 12px;
-  color: rgba(255,255,255,0.4);
-  margin-top: 6px;
-}
-.hero-sub span { color: rgba(255,255,255,0.7); font-weight: 600; }
-.hero-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 16px;
-}
-.hero-mini {
-  background: rgba(255,255,255,0.06);
-  border-radius: 10px;
-  padding: 12px;
-}
-.hero-mini-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
-.hero-mini-value { font-size: 18px; font-weight: 800; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
-.hero-mini-value.green { color: #5dd49a; }
-.hero-mini-value.white { color: #fff; }
+.summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.summary-card { background:var(--surface); border-radius:14px; padding:16px; box-shadow:var(--shadow); border:1px solid var(--border); }
+.summary-card-label { font-size:11px; color:var(--ink3); font-weight:500; margin-bottom:6px; }
+.summary-card-value { font-size:19px; font-weight:900; font-family:'DM Mono',monospace; letter-spacing:-1px; }
+.summary-card-value.green { color:var(--green); }
+.summary-card-value.accent { color:var(--accent); }
+.summary-card-value.yellow { color:var(--yellow); }
+.summary-card-value.blue { color:var(--blue); }
+.summary-card-value.purple { color:var(--purple); }
+.summary-card-sub { font-size:10px; color:var(--ink3); margin-top:3px; }
 
-/* 월별 적립 배너 */
-.reserve-banner {
-  margin: 16px;
-  background: var(--accent-light);
-  border: 1.5px solid rgba(212,82,26,0.25);
-  border-radius: 14px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.reserve-icon { font-size: 28px; }
-.reserve-text-wrap { flex: 1; }
-.reserve-text-label { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; }
-.reserve-text-amount { font-size: 22px; font-weight: 900; color: var(--accent); font-family: 'DM Mono', monospace; letter-spacing: -1px; }
-.reserve-text-sub { font-size: 11px; color: var(--accent); opacity: 0.7; }
+.section-title { font-size:13px; font-weight:700; color:var(--ink); margin-bottom:10px; margin-top:18px; }
 
-/* 섹션 */
-.section { padding: 0 16px; margin-bottom: 20px; }
-.section-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink3);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.ratio-card { background:var(--surface); border-radius:14px; padding:16px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:14px; }
+.ratio-row { display:flex; justify-content:space-between; font-size:12px; color:var(--ink2); margin-bottom:8px; }
+.progress-bar { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:4px; background:var(--accent); transition:width .5s ease; }
 
-/* 요약 카드 그리드 */
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.stat-card {
-  background: var(--surface);
-  border-radius: 14px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-}
-.stat-card-label { font-size: 10px; color: var(--ink3); font-weight: 500; margin-bottom: 6px; }
-.stat-card-value { font-size: 20px; font-weight: 900; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
-.stat-card-value.green { color: var(--green); }
-.stat-card-value.blue { color: var(--blue); }
-.stat-card-value.yellow { color: var(--yellow); }
-.stat-card-sub { font-size: 10px; color: var(--ink3); margin-top: 3px; }
+.next-card { background:var(--surface); border-radius:14px; padding:4px 16px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:14px; }
+.pay-item { display:flex; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); gap:12px; }
+.pay-item:last-child { border-bottom:none; }
+.pay-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.pay-info { flex:1; }
+.pay-name { font-size:13px; font-weight:600; }
+.pay-date { font-size:11px; color:var(--ink3); margin-top:2px; }
+.pay-right { text-align:right; }
+.pay-amount { font-size:15px; font-weight:700; font-family:'DM Mono',monospace; color:var(--accent); }
+.pay-dday { font-size:11px; font-weight:700; margin-top:2px; }
 
-/* 세금 항목 카드 */
-.tax-card {
-  background: var(--surface);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.tax-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  gap: 12px;
-}
-.tax-row:last-child { border-bottom: none; }
-.tax-row-icon {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.tax-row-info { flex: 1; }
-.tax-row-name { font-size: 13px; font-weight: 600; }
-.tax-row-desc { font-size: 11px; color: var(--ink3); margin-top: 1px; }
-.tax-row-right { text-align: right; }
-.tax-row-amount { font-size: 15px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.tax-row-amount.accent { color: var(--accent); }
-.tax-row-amount.blue { color: var(--blue); }
-.tax-row-amount.green { color: var(--green); }
-.tax-row-amount.yellow { color: var(--yellow); }
-.tax-row-date { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+/* 인건비 알림 배너 */
+.wh-banner { background:var(--purple-light); border:1.5px solid rgba(106,58,170,0.2); border-radius:14px; padding:14px 16px; margin-bottom:14px; }
+.wh-banner-title { font-size:12px; font-weight:700; color:var(--purple); margin-bottom:4px; }
+.wh-banner-row { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+.wh-banner-label { font-size:12px; color:var(--purple); opacity:0.8; }
+.wh-banner-value { font-size:14px; font-weight:700; font-family:'DM Mono',monospace; color:var(--purple); }
 
-/* 다음 납부 일정 */
-.payment-card {
-  background: var(--surface);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.payment-row {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  gap: 12px;
-}
-.payment-row:last-child { border-bottom: none; }
-.payment-dday {
-  min-width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: var(--accent-light);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-}
-.payment-dday-text { font-size: 13px; font-weight: 900; color: var(--accent); font-family: 'DM Mono', monospace; }
-.payment-dday-label { font-size: 9px; color: var(--accent); opacity: 0.7; }
-.payment-info { flex: 1; }
-.payment-name { font-size: 13px; font-weight: 600; }
-.payment-date { font-size: 11px; color: var(--ink3); margin-top: 2px; }
-.payment-amount { font-size: 15px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--accent); }
+/* TAX PAGE */
+.tax-card { background:var(--surface); border-radius:14px; padding:4px 16px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:14px; }
+.tax-item { display:flex; align-items:center; padding:16px 0; border-bottom:1px solid var(--border); gap:12px; }
+.tax-item:last-child { border-bottom:none; }
+.tax-icon { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.tax-info { flex:1; }
+.tax-name { font-size:14px; font-weight:600; }
+.tax-desc { font-size:11px; color:var(--ink3); margin-top:2px; }
+.tax-right { text-align:right; }
+.tax-amount { font-size:16px; font-weight:700; font-family:'DM Mono',monospace; }
+.tax-sub { font-size:11px; color:var(--ink3); margin-top:2px; }
 
-/* 캘린더 */
-.calendar-card {
-  background: var(--surface);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 16px;
-}
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  margin-top: 4px;
-}
-.cal-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-.cal-cell-label { font-size: 10px; color: var(--ink3); }
-.cal-cell-box {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  background: var(--surface2);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  padding: 2px;
-}
-.cal-cell-box.has-tax {
-  background: var(--accent-light);
-  border: 1.5px solid rgba(212,82,26,0.3);
-}
-.cal-cell-box.current { border: 2px solid var(--ink); }
-.cal-cell-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
-.cal-cell-amt { font-size: 8px; color: var(--accent); font-weight: 700; font-family: 'DM Mono', monospace; }
-.cal-cell-dday { font-size: 8px; color: var(--accent); font-weight: 700; }
+/* 인건비 섹션 */
+.staff-summary { background:var(--purple-light); border-radius:14px; padding:16px; border:1.5px solid rgba(106,58,170,0.2); margin-bottom:14px; }
+.staff-summary-title { font-size:12px; font-weight:700; color:var(--purple); margin-bottom:12px; }
+.staff-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(106,58,170,0.1); }
+.staff-row:last-child { border-bottom:none; }
+.staff-label { font-size:12px; color:var(--purple); opacity:0.8; }
+.staff-value { font-size:13px; font-weight:700; font-family:'DM Mono',monospace; color:var(--purple); }
 
-/* 월별 차트 */
-.chart-card {
-  background: var(--surface);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 16px;
-}
-.monthly-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 80px;
-  margin-top: 8px;
-}
-.bar-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  height: 100%;
-  justify-content: flex-end;
-  position: relative;
-}
-.bar {
-  width: 100%;
-  border-radius: 3px 3px 0 0;
-  min-height: 2px;
-  transition: height 0.4s ease;
-}
-.bar.income-bar { background: var(--green); opacity: 0.8; }
-.bar-label { font-size: 9px; color: var(--ink3); }
+/* CAL */
+.cal-card { background:var(--surface); border-radius:14px; padding:16px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:14px; }
+.cal-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-top:12px; }
+.cal-month { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.cal-label { font-size:10px; color:var(--ink3); font-weight:500; }
+.cal-dot { width:100%; aspect-ratio:1; border-radius:10px; background:var(--surface2); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:3px; }
+.cal-dot.has-tax { background:var(--accent-light); border:1.5px solid rgba(212,82,26,0.3); }
+.cal-dot.has-wh { background:var(--purple-light); border:1.5px solid rgba(106,58,170,0.3); }
+.cal-dot.current { border:2px solid var(--ink) !important; }
+.cal-tdot { width:5px; height:5px; border-radius:50%; background:var(--accent); }
+.cal-tdot.purple { background:var(--purple); }
+.cal-amt { font-size:8px; color:var(--accent); font-weight:700; font-family:'DM Mono',monospace; }
+.cal-amt.purple { color:var(--purple); }
+.cal-dday { font-size:7px; font-weight:700; color:var(--accent); }
 
-/* ===== 입력 탭 ===== */
-.input-page { padding: 16px; padding-bottom: calc(var(--nav-h) + 16px); }
+/* INPUT PAGE */
+.tab-toggle { display:flex; background:var(--surface2); border-radius:12px; padding:4px; margin-bottom:16px; gap:3px; }
+.tab-btn { flex:1; padding:9px 4px; border:none; background:transparent; font-size:12px; font-weight:600; color:var(--ink2); border-radius:9px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all .15s; white-space:nowrap; }
+.tab-btn.active { background:var(--surface); color:var(--ink); box-shadow:0 1px 6px rgba(0,0,0,0.1); }
 
-.input-type-toggle {
-  display: flex;
-  background: var(--surface2);
-  border-radius: 12px;
-  padding: 4px;
-  margin-bottom: 16px;
-}
-.input-type-btn {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink3);
-  border-radius: 9px;
-  cursor: pointer;
-  font-family: 'Noto Sans KR', sans-serif;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.input-type-btn.active {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
-}
+.form-card { background:var(--surface); border-radius:16px; padding:20px; box-shadow:var(--shadow); border:1px solid var(--border); }
+.form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.form-group label { font-size:12px; font-weight:600; color:var(--ink2); }
+.form-group input, .form-group select { padding:13px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:15px; font-family:'Noto Sans KR',sans-serif; color:var(--ink); background:var(--bg); outline:none; transition:border-color .15s; -webkit-appearance:none; }
+.form-group input:focus, .form-group select:focus { border-color:var(--accent); background:#fff; }
+.form-group input::placeholder { color:var(--ink3); }
+.form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.input-wrap { position:relative; }
+.input-wrap input { width:100%; padding-right:36px; font-family:'DM Mono',monospace; }
+.input-unit { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--ink3); pointer-events:none; }
+.submit-btn { width:100%; padding:16px; background:var(--accent); color:#fff; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all .15s; margin-top:4px; }
+.submit-btn:active { transform:scale(0.98); opacity:0.9; }
+.submit-btn.blue { background:var(--blue); }
+.submit-btn.purple { background:var(--purple); }
 
-.form-card {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  margin-bottom: 16px;
-}
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.form-group:last-child { margin-bottom: 0; }
-.form-group label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink2);
-}
-.form-group input, .form-group select {
-  padding: 13px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 15px;
-  font-family: 'Noto Sans KR', sans-serif;
-  color: var(--ink);
-  background: var(--bg);
-  outline: none;
-  transition: border-color 0.15s;
-  -webkit-appearance: none;
-}
-.form-group input:focus, .form-group select:focus {
-  border-color: var(--accent);
-  background: #fff;
-}
-.form-group input::placeholder { color: var(--ink3); }
-.form-row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.input-with-unit { position: relative; }
-.input-with-unit input { padding-right: 32px; width: 100%; font-family: 'DM Mono', monospace; }
-.input-unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--ink3); }
+/* 인건비 안내박스 */
+.info-box { background:var(--purple-light); border:1.5px solid rgba(106,58,170,0.2); border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:12px; color:var(--purple); line-height:1.6; }
+.info-box strong { font-weight:700; }
 
-.big-btn {
-  width: 100%;
-  padding: 16px;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: 'Noto Sans KR', sans-serif;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  letter-spacing: -0.3px;
-}
-.big-btn.income { background: var(--accent); color: #fff; }
-.big-btn.expense { background: var(--blue); color: #fff; }
-.big-btn:active { transform: scale(0.98); opacity: 0.9; }
+/* LEDGER */
+.filter-row { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.filter-chip { padding:7px 14px; border:1.5px solid var(--border); border-radius:20px; font-size:12px; font-weight:600; color:var(--ink2); cursor:pointer; background:var(--surface); font-family:'Noto Sans KR',sans-serif; transition:all .15s; }
+.filter-chip.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+.ledger-list { display:flex; flex-direction:column; gap:8px; }
+.ledger-item { background:var(--surface); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); border:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+.ledger-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.ledger-dot.income { background:var(--green); }
+.ledger-dot.expense { background:var(--accent); }
+.ledger-dot.staff { background:var(--purple); }
+.ledger-info { flex:1; min-width:0; }
+.ledger-name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ledger-date { font-size:11px; color:var(--ink3); margin-top:2px; }
+.ledger-tag { font-size:10px; font-weight:600; padding:1px 6px; border-radius:4px; display:inline-block; margin-top:2px; }
+.ledger-tag.income { background:var(--green-light); color:var(--green); }
+.ledger-tag.expense { background:var(--accent-light); color:var(--accent); }
+.ledger-tag.staff { background:var(--purple-light); color:var(--purple); }
+.ledger-right { text-align:right; flex-shrink:0; }
+.ledger-amount { font-size:15px; font-weight:700; font-family:'DM Mono',monospace; }
+.ledger-amount.income { color:var(--green); }
+.ledger-amount.expense { color:var(--accent); }
+.ledger-amount.staff { color:var(--purple); }
+.ledger-actions { display:flex; gap:6px; margin-top:4px; justify-content:flex-end; }
+.action-btn { padding:3px 10px; border:1px solid var(--border); border-radius:6px; font-size:11px; color:var(--ink3); cursor:pointer; background:transparent; font-family:'Noto Sans KR',sans-serif; }
+.action-btn.del { color:var(--accent); border-color:rgba(212,82,26,0.3); }
+.empty-state { padding:60px 20px; text-align:center; color:var(--ink3); }
+.empty-icon { font-size:40px; margin-bottom:10px; }
+.empty-state p { font-size:14px; }
+.empty-state small { font-size:12px; margin-top:4px; display:block; }
 
-/* ===== 내역 탭 ===== */
-.ledger-page { padding: 16px; padding-bottom: calc(var(--nav-h) + 16px); }
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; display:none; align-items:flex-end; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--surface); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; max-width:480px; box-shadow:var(--shadow-lg); }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-size:17px; font-weight:700; margin-bottom:20px; }
+.modal-actions { display:flex; gap:10px; margin-top:20px; }
+.btn-cancel { flex:1; padding:14px; border:1.5px solid var(--border); border-radius:12px; background:transparent; font-size:15px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; color:var(--ink2); font-weight:600; }
+.btn-save { flex:2; padding:14px; background:var(--accent); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Noto Sans KR',sans-serif; }
 
-.filter-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.filter-chip {
-  padding: 7px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink2);
-  cursor: pointer;
-  background: var(--surface);
-  font-family: 'Noto Sans KR', sans-serif;
-  transition: all 0.15s;
-}
-.filter-chip.active {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
-}
+/* TOAST */
+.toast { position:fixed; bottom:calc(var(--nav-h) + 16px); left:50%; transform:translateX(-50%) translateY(100px); background:var(--ink); color:#fff; padding:12px 24px; border-radius:24px; font-size:13px; font-weight:500; box-shadow:var(--shadow-lg); opacity:0; transition:all .3s; z-index:1000; white-space:nowrap; }
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+.toast.success { background:var(--green); }
+.toast.error { background:var(--accent); }
 
-.ledger-list { display: flex; flex-direction: column; gap: 8px; }
-.ledger-item {
-  background: var(--surface);
-  border-radius: 14px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: center;
-  gap: 12px;
+@media (min-width:600px) {
+  .pages,.topbar,.type-bar,.bottom-nav { max-width:480px; left:50%; transform:translateX(-50%); right:auto; width:100%; }
+  body { background:#e8e4dc; }
 }
-.ledger-item-icon {
-  width: 40px; height: 40px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.ledger-item-info { flex: 1; min-width: 0; }
-.ledger-item-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ledger-item-date { font-size: 11px; color: var(--ink3); margin-top: 2px; }
-.ledger-item-right { text-align: right; flex-shrink: 0; }
-.ledger-item-amount { font-size: 15px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.ledger-item-amount.income { color: var(--green); }
-.ledger-item-amount.expense { color: var(--accent); }
-.ledger-item-actions { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; }
-.mini-btn {
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 10px;
-  color: var(--ink3);
-  cursor: pointer;
-  background: transparent;
-  font-family: 'Noto Sans KR', sans-serif;
-}
-.mini-btn.del { color: var(--accent); border-color: rgba(212,82,26,0.3); }
-
-.empty-state {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--ink3);
-}
-.empty-icon { font-size: 40px; margin-bottom: 8px; }
-.empty-text { font-size: 14px; margin-bottom: 4px; }
-.empty-sub { font-size: 12px; }
-
-/* ===== 하단 네비게이션 ===== */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0; right: 0;
-  height: var(--nav-h);
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex;
-  z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Noto Sans KR', sans-serif;
-  transition: all 0.15s;
-  padding: 8px 0;
-}
-.nav-icon { font-size: 22px; transition: transform 0.15s; }
-.nav-label { font-size: 10px; font-weight: 500; color: var(--ink3); }
-.nav-item.active .nav-label { color: var(--accent); font-weight: 700; }
-.nav-item.active .nav-icon { transform: scale(1.1); }
-
-/* FAB (빠른 입력 버튼) */
-.fab {
-  position: fixed;
-  bottom: calc(var(--nav-h) + 16px);
-  right: 16px;
-  width: 56px; height: 56px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 16px;
-  font-size: 28px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(212,82,26,0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 99;
-  transition: all 0.15s;
-}
-.fab:active { transform: scale(0.93); }
-
-/* ===== 모달 ===== */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 300;
-  display: none;
-  align-items: flex-end;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--surface);
-  border-radius: 20px 20px 0 0;
-  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal-handle {
-  width: 36px; height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  margin: 0 auto 16px;
-}
-.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
-.modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 20px;
-}
-.btn-cancel {
-  flex: 1;
-  padding: 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: 'Noto Sans KR', sans-serif;
-  color: var(--ink2);
-}
-.btn-save {
-  flex: 2;
-  padding: 14px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: 'Noto Sans KR', sans-serif;
-}
-
-/* ===== 토스트 ===== */
-.toast {
-  position: fixed;
-  bottom: calc(var(--nav-h) + 16px);
-  left: 50%;
-  transform: translateX(-50%) translateY(80px);
-  background: var(--ink);
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 24px;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transition: all 0.3s;
-  z-index: 400;
-  white-space: nowrap;
-}
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-.toast.success { background: var(--green); }
-.toast.error { background: var(--accent); }
-
-/* 진행률 바 */
-.progress-wrap { margin-top: 10px; }
-.progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink3); margin-bottom: 5px; }
-.progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.5s ease; }
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-logo">세금<span>지갑</span></div>
-  <div class="topbar-right">
-    <div class="year-badge" id="yearDisplay">2025년</div>
-    <div class="type-dropdown">
-      <button class="type-current" id="typeCurrentBtn" onclick="toggleTypeMenu()">간이과세자</button>
-      <div class="type-menu" id="typeMenu">
-        <div class="type-menu-item" onclick="setType('freelancer', '프리랜서 3.3%')">프리랜서 3.3%</div>
-        <div class="type-menu-item active" onclick="setType('simple', '간이과세자')">간이과세자</div>
-        <div class="type-menu-item" onclick="setType('general', '일반과세자')">일반과세자</div>
-      </div>
-    </div>
-  </div>
+  <div class="topbar-logo">세금<span>계산기</span></div>
+  <div class="topbar-year" id="yearDisplay">2026년</div>
 </div>
 
-<!-- 페이지: 홈 -->
-<div class="page active" id="page-home">
+<div class="type-bar">
+  <button class="type-btn" onclick="setType('freelancer',this)">프리랜서 3.3%</button>
+  <button class="type-btn active" onclick="setType('simple',this)">간이과세자</button>
+  <button class="type-btn" onclick="setType('general',this)">일반과세자</button>
+</div>
 
-  <!-- 히어로 -->
-  <div class="home-hero">
-    <div class="hero-label">⚠ 지금 묶어둬야 할 세금</div>
-    <div class="hero-amount" id="heroTax">0원</div>
-    <div class="hero-sub">매달 <span id="heroMonthly">0원</span>씩 따로 모아두세요</div>
-    <div class="hero-row">
-      <div class="hero-mini">
-        <div class="hero-mini-label">올해 누적 매출</div>
-        <div class="hero-mini-value green" id="heroRevenue">0원</div>
-      </div>
-      <div class="hero-mini">
-        <div class="hero-mini-label">실제 내 수익</div>
-        <div class="hero-mini-value white" id="heroNet">0원</div>
+<div class="pages">
+
+  <!-- 홈 -->
+  <div class="page active" id="page-home">
+    <div class="reserve-hero">
+      <div class="reserve-hero-label">⚠ 지금 묶어둬야 할 세금</div>
+      <div class="reserve-hero-amount" id="reserveAmount">0원</div>
+      <div class="reserve-hero-sub">이 금액은 절대 쓰지 마세요</div>
+      <div class="reserve-hero-monthly">
+        <span>매월 적립 권고액</span>
+        <strong id="monthlyReserve">0원/월</strong>
       </div>
     </div>
-  </div>
 
-  <!-- 세금 비율 -->
-  <div style="padding: 16px 16px 0;">
-    <div class="progress-wrap">
-      <div class="progress-label">
-        <span>매출 대비 세금 비율</span>
-        <span id="taxRatioLabel">0%</span>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-card-label">올해 누적 매출</div>
+        <div class="summary-card-value green" id="totalRevenue">0원</div>
+        <div class="summary-card-sub" id="totalRevenueSub">이번달 0원</div>
       </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="taxRatioBar" style="width:0%"></div>
+      <div class="summary-card">
+        <div class="summary-card-label">올해 누적 경비</div>
+        <div class="summary-card-value blue" id="totalExpense">0원</div>
+        <div class="summary-card-sub" id="totalExpenseSub">이번달 0원</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">인건비 총액</div>
+        <div class="summary-card-value purple" id="totalStaff">0원</div>
+        <div class="summary-card-sub">4대보험 포함 실부담</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">예상 세금 총액</div>
+        <div class="summary-card-value accent" id="totalTax">0원</div>
+        <div class="summary-card-sub">부가세+종소세+건보</div>
+      </div>
+      <div class="summary-card" style="grid-column:span 2">
+        <div class="summary-card-label">실제 내 수익</div>
+        <div class="summary-card-value yellow" id="netIncome">0원</div>
+        <div class="summary-card-sub">매출 - 경비 - 인건비 - 세금</div>
       </div>
     </div>
-  </div>
 
-  <!-- 요약 카드 -->
-  <div class="section" style="margin-top:16px;">
-    <div class="section-title">수입/지출 현황</div>
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-card-label">올해 누적 매출</div>
-        <div class="stat-card-value green" id="totalRevenue">0원</div>
-        <div class="stat-card-sub" id="totalRevenueSub">이번달 0원</div>
+    <div class="ratio-card">
+      <div class="ratio-row"><span>세금 비율</span><span id="taxRatioLabel">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="taxRatioBar" style="width:0%"></div></div>
+    </div>
+
+    <!-- 원천징수 알림 -->
+    <div class="wh-banner" id="whBanner" style="display:none">
+      <div class="wh-banner-title">👤 이번달 원천징수 납부 필요</div>
+      <div class="wh-banner-row">
+        <span class="wh-banner-label">직원 소득세 원천징수</span>
+        <span class="wh-banner-value" id="whThisMonth">0원</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-card-label">올해 누적 경비</div>
-        <div class="stat-card-value blue" id="totalExpense">0원</div>
-        <div class="stat-card-sub" id="totalExpenseSub">이번달 0원</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-label">예상 세금 총액</div>
-        <div class="stat-card-value" style="color:var(--accent)" id="totalTax">0원</div>
-        <div class="stat-card-sub" id="taxTypeSub">부가세+종소세+건보</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-label">실제 내 수익</div>
-        <div class="stat-card-value yellow" id="netIncome">0원</div>
-        <div class="stat-card-sub">매출-경비-세금</div>
+      <div class="wh-banner-row">
+        <span class="wh-banner-label">납부 기한</span>
+        <span class="wh-banner-value" id="whDeadline">-</span>
       </div>
     </div>
-  </div>
 
-  <!-- 세금 항목 -->
-  <div class="section">
-    <div class="section-title">세금 항목 상세</div>
-    <div class="tax-card">
-      <div class="tax-row">
-        <div class="tax-row-icon" style="background:var(--accent-light)">📋</div>
-        <div class="tax-row-info">
-          <div class="tax-row-name">부가가치세</div>
-          <div class="tax-row-desc" id="vatDesc">-</div>
-        </div>
-        <div class="tax-row-right">
-          <div class="tax-row-amount accent" id="vatAmount">0원</div>
-          <div class="tax-row-date">1월/7월 신고</div>
-        </div>
-      </div>
-      <div class="tax-row">
-        <div class="tax-row-icon" style="background:var(--blue-light)">📊</div>
-        <div class="tax-row-info">
-          <div class="tax-row-name">종합소득세</div>
-          <div class="tax-row-desc" id="itDesc">-</div>
-        </div>
-        <div class="tax-row-right">
-          <div class="tax-row-amount blue" id="itAmount">0원</div>
-          <div class="tax-row-date">5월 신고</div>
-        </div>
-      </div>
-      <div class="tax-row">
-        <div class="tax-row-icon" style="background:var(--green-light)">🏥</div>
-        <div class="tax-row-info">
-          <div class="tax-row-name">건강보험료</div>
-          <div class="tax-row-desc">소득 × 7.09% + 장기요양 12.95%</div>
-        </div>
-        <div class="tax-row-right">
-          <div class="tax-row-amount green" id="healthMonthly">0원/월</div>
-          <div class="tax-row-date" id="healthAnnual">연간 0원</div>
-        </div>
-      </div>
-      <div class="tax-row">
-        <div class="tax-row-icon" style="background:var(--yellow-light)">💼</div>
-        <div class="tax-row-info">
-          <div class="tax-row-name">국민연금</div>
-          <div class="tax-row-desc">소득 × 9% (상한 590만/월)</div>
-        </div>
-        <div class="tax-row-right">
-          <div class="tax-row-amount yellow" id="pensionMonthly">0원/월</div>
-          <div class="tax-row-date" id="pensionAnnual">연간 0원</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 다음 납부 일정 -->
-  <div class="section">
     <div class="section-title">다음 납부 일정</div>
-    <div class="payment-card" id="nextPayments"></div>
+    <div class="next-card" id="nextPayments"></div>
   </div>
 
-  <!-- 연간 캘린더 -->
-  <div class="section">
+  <!-- 세금 상세 -->
+  <div class="page" id="page-tax">
+    <div class="section-title">내 세금 항목</div>
+    <div class="tax-card">
+      <div class="tax-item">
+        <div class="tax-icon" style="background:var(--accent-light)">📋</div>
+        <div class="tax-info">
+          <div class="tax-name">부가가치세</div>
+          <div class="tax-desc" id="vatDesc">-</div>
+        </div>
+        <div class="tax-right">
+          <div class="tax-amount accent" id="vatAmount">0원</div>
+          <div class="tax-sub">1월/7월 신고</div>
+        </div>
+      </div>
+      <div class="tax-item">
+        <div class="tax-icon" style="background:var(--blue-light)">📊</div>
+        <div class="tax-info">
+          <div class="tax-name">종합소득세</div>
+          <div class="tax-desc" id="itDesc">-</div>
+        </div>
+        <div class="tax-right">
+          <div class="tax-amount" style="color:var(--blue)" id="itAmount">0원</div>
+          <div class="tax-sub">5월 신고</div>
+        </div>
+      </div>
+      <div class="tax-item">
+        <div class="tax-icon" style="background:var(--green-light)">🏥</div>
+        <div class="tax-info">
+          <div class="tax-name">건강보험료 (내것)</div>
+          <div class="tax-desc">소득×7.09% + 장기요양 12.95%</div>
+        </div>
+        <div class="tax-right">
+          <div class="tax-amount green" id="healthMonthly">0원/월</div>
+          <div class="tax-sub" id="healthAnnual">연간 0원</div>
+        </div>
+      </div>
+      <div class="tax-item">
+        <div class="tax-icon" style="background:var(--yellow-light)">💼</div>
+        <div class="tax-info">
+          <div class="tax-name">국민연금 (내것)</div>
+          <div class="tax-desc">소득×9% (상한 590만/월)</div>
+        </div>
+        <div class="tax-right">
+          <div class="tax-amount" style="color:var(--yellow)" id="pensionMonthly">0원/월</div>
+          <div class="tax-sub" id="pensionAnnual">연간 0원</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 직원 관련 세금/보험 -->
+    <div class="section-title">직원 관련 납부 항목</div>
+    <div id="staffTaxSection">
+      <div style="font-size:13px;color:var(--ink3);padding:8px 0">인건비를 입력하면 직원 관련 납부 항목이 표시돼요</div>
+    </div>
+
     <div class="section-title">연간 납부 캘린더</div>
-    <div class="calendar-card">
+    <div class="cal-card">
+      <div style="display:flex;gap:12px;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--ink3);display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:var(--accent);border-radius:2px;display:inline-block"></span>세금 납부</span>
+        <span style="font-size:10px;color:var(--ink3);display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:var(--purple);border-radius:2px;display:inline-block"></span>원천징수</span>
+      </div>
       <div class="cal-grid" id="taxCalendar"></div>
     </div>
   </div>
 
-  <!-- 월별 차트 -->
-  <div class="section">
-    <div class="section-title">월별 매출 추이</div>
-    <div class="chart-card">
-      <div class="monthly-bars" id="monthlyBars"></div>
-      <div style="display:flex;gap:12px;margin-top:8px;">
-        <span style="font-size:10px;color:var(--ink3);display:flex;align-items:center;gap:4px;">
-          <span style="width:8px;height:8px;background:var(--green);border-radius:2px;display:inline-block;opacity:0.8"></span>매출
-        </span>
+  <!-- 입력 -->
+  <div class="page" id="page-input">
+    <div class="tab-toggle">
+      <button class="tab-btn active" onclick="switchTab('income')">💰 매출</button>
+      <button class="tab-btn" onclick="switchTab('expense')">🧾 경비</button>
+      <button class="tab-btn" onclick="switchTab('staff')">👤 인건비</button>
+    </div>
+
+    <!-- 매출 폼 -->
+    <div id="incomeForm" class="form-card">
+      <div class="form-group"><label>항목명</label><input type="text" id="incomeName" placeholder="예) A사 개발비, 강의료" /></div>
+      <div class="form-row-2">
+        <div class="form-group"><label>날짜</label><input type="date" id="incomeDate" /></div>
+        <div class="form-group"><label>금액</label><div class="input-wrap"><input type="number" id="incomeAmount" placeholder="0" inputmode="numeric" /><span class="input-unit">원</span></div></div>
+      </div>
+      <div class="form-group"><label>부가세 포함 여부</label>
+        <select id="incomeVat">
+          <option value="exclude">부가세 별도 (공급가액)</option>
+          <option value="include">부가세 포함 (공급가액+세액)</option>
+          <option value="none">해당없음 (프리랜서 등)</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="addIncome()">＋ 매출 추가</button>
+    </div>
+
+    <!-- 경비 폼 -->
+    <div id="expenseForm" class="form-card" style="display:none">
+      <div class="form-group"><label>항목명</label><input type="text" id="expenseName" placeholder="예) 사무실 임차료, 장비 구입" /></div>
+      <div class="form-row-2">
+        <div class="form-group"><label>날짜</label><input type="date" id="expenseDate" /></div>
+        <div class="form-group"><label>금액</label><div class="input-wrap"><input type="number" id="expenseAmount" placeholder="0" inputmode="numeric" /><span class="input-unit">원</span></div></div>
+      </div>
+      <div class="form-group"><label>경비 유형</label>
+        <select id="expenseType">
+          <option value="general">일반경비</option>
+          <option value="vat">매입세금계산서 (부가세 공제)</option>
+        </select>
+      </div>
+      <button class="submit-btn blue" onclick="addExpense()">＋ 경비 추가</button>
+    </div>
+
+    <!-- 인건비 폼 -->
+    <div id="staffForm" style="display:none">
+      <div class="info-box">
+        <strong>💡 인건비 입력 안내</strong><br>
+        직원 급여 입력 시 자동으로 계산돼요:<br>
+        · 소득세 원천징수 → 매월 10일 납부<br>
+        · 4대보험 사업주 부담분 (약 10.655%) 자동 계산<br>
+        · 인건비 + 사업주 4대보험 전액 비용 처리
+      </div>
+      <div class="form-card">
+        <div class="form-group"><label>직원명 (또는 항목)</label><input type="text" id="staffName" placeholder="예) 홍길동, 아르바이트" /></div>
+        <div class="form-row-2">
+          <div class="form-group"><label>지급월</label><input type="month" id="staffDate" /></div>
+          <div class="form-group"><label>월 급여</label><div class="input-wrap"><input type="number" id="staffAmount" placeholder="0" inputmode="numeric" /><span class="input-unit">원</span></div></div>
+        </div>
+        <div class="form-group"><label>고용 유형</label>
+          <select id="staffType">
+            <option value="fulltime">정규직/계약직 (4대보험 가입)</option>
+            <option value="parttime">단기 아르바이트 (일용직)</option>
+            <option value="freelance">외주 프리랜서 (3.3% 원천징수)</option>
+          </select>
+        </div>
+        <div id="staffPreview" style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px;display:none">
+          <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px">자동 계산 미리보기</div>
+          <div id="staffPreviewContent"></div>
+        </div>
+        <button class="submit-btn purple" onclick="addStaff()">＋ 인건비 추가</button>
       </div>
     </div>
   </div>
 
-</div>
-
-<!-- 페이지: 매출입력 -->
-<div class="page" id="page-input">
-  <div class="input-page">
-    <div class="input-type-toggle">
-      <button class="input-type-btn active" id="inputTabIncome" onclick="switchInputTab('income')">💰 매출 입력</button>
-      <button class="input-type-btn" id="inputTabExpense" onclick="switchInputTab('expense')">🧾 경비 입력</button>
-    </div>
-
-    <!-- 매출 입력 폼 -->
-    <div id="incomeForm">
-      <div class="form-card">
-        <div class="form-group">
-          <label>항목명</label>
-          <input type="text" id="incomeName" placeholder="예) A사 개발비, 강의료" />
-        </div>
-        <div class="form-row-2">
-          <div class="form-group">
-            <label>날짜</label>
-            <input type="date" id="incomeDate" />
-          </div>
-          <div class="form-group">
-            <label>금액 (원)</label>
-            <div class="input-with-unit">
-              <input type="number" id="incomeAmount" placeholder="0" inputmode="numeric" />
-              <span class="input-unit">원</span>
-            </div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>부가세 포함 여부</label>
-          <select id="incomeVat">
-            <option value="exclude">부가세 별도 (공급가액)</option>
-            <option value="include">부가세 포함 (공급가액+세액)</option>
-            <option value="none">해당없음 (프리랜서 등)</option>
-          </select>
-        </div>
-      </div>
-      <button class="big-btn income" onclick="addIncome()">＋ 매출 추가</button>
-    </div>
-
-    <!-- 경비 입력 폼 -->
-    <div id="expenseForm" style="display:none">
-      <div class="form-card">
-        <div class="form-group">
-          <label>항목명</label>
-          <input type="text" id="expenseName" placeholder="예) 사무실 임차료, 장비 구입" />
-        </div>
-        <div class="form-row-2">
-          <div class="form-group">
-            <label>날짜</label>
-            <input type="date" id="expenseDate" />
-          </div>
-          <div class="form-group">
-            <label>금액 (원)</label>
-            <div class="input-with-unit">
-              <input type="number" id="expenseAmount" placeholder="0" inputmode="numeric" />
-              <span class="input-unit">원</span>
-            </div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>경비 유형</label>
-          <select id="expenseType">
-            <option value="general">일반경비</option>
-            <option value="vat">매입세금계산서 (부가세 공제)</option>
-          </select>
-        </div>
-      </div>
-      <button class="big-btn expense" onclick="addExpense()">＋ 경비 추가</button>
-    </div>
-  </div>
-</div>
-
-<!-- 페이지: 내역 -->
-<div class="page" id="page-ledger">
-  <div class="ledger-page">
+  <!-- 내역 -->
+  <div class="page" id="page-ledger">
     <div class="filter-row">
-      <button class="filter-chip active" onclick="setFilter('all')">전체</button>
-      <button class="filter-chip" onclick="setFilter('income')">매출</button>
-      <button class="filter-chip" onclick="setFilter('expense')">경비</button>
+      <button class="filter-chip active" onclick="setFilter('all',this)">전체</button>
+      <button class="filter-chip" onclick="setFilter('income',this)">매출</button>
+      <button class="filter-chip" onclick="setFilter('expense',this)">경비</button>
+      <button class="filter-chip" onclick="setFilter('staff',this)">인건비</button>
     </div>
     <div class="ledger-list" id="ledgerList"></div>
   </div>
+
 </div>
 
-<!-- 하단 네비게이션 -->
+<!-- BOTTOM NAV -->
 <div class="bottom-nav">
-  <button class="nav-item active" id="nav-home" onclick="switchPage('home')">
-    <span class="nav-icon">📊</span>
-    <span class="nav-label">홈</span>
-  </button>
-  <button class="nav-item" id="nav-input" onclick="switchPage('input')">
-    <span class="nav-icon">✏️</span>
-    <span class="nav-label">입력</span>
-  </button>
-  <button class="nav-item" id="nav-ledger" onclick="switchPage('ledger')">
-    <span class="nav-icon">📋</span>
-    <span class="nav-label">내역</span>
-  </button>
+  <button class="nav-btn active" onclick="goPage('home',this)"><div class="nav-icon">🏠</div><span>홈</span></button>
+  <button class="nav-btn" onclick="goPage('tax',this)"><div class="nav-icon">📊</div><span>세금</span></button>
+  <button class="nav-btn" onclick="goPage('input',this)"><div class="nav-icon">➕</div><span>입력</span></button>
+  <button class="nav-btn" onclick="goPage('ledger',this)"><div class="nav-icon">📋</div><span>내역</span></button>
 </div>
 
-<!-- 수정 모달 -->
+<!-- MODAL -->
 <div class="modal-overlay" id="editModal">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">내역 수정</div>
-    <div class="form-group">
-      <label>항목명</label>
-      <input type="text" id="editName" />
-    </div>
+    <div class="form-group"><label>항목명</label><input type="text" id="editName" /></div>
     <div class="form-row-2">
-      <div class="form-group">
-        <label>날짜</label>
-        <input type="date" id="editDate" />
-      </div>
-      <div class="form-group">
-        <label>금액</label>
-        <div class="input-with-unit">
-          <input type="number" id="editAmount" inputmode="numeric" />
-          <span class="input-unit">원</span>
-        </div>
-      </div>
+      <div class="form-group"><label>날짜</label><input type="date" id="editDate" /></div>
+      <div class="form-group"><label>금액</label><div class="input-wrap"><input type="number" id="editAmount" inputmode="numeric" /><span class="input-unit">원</span></div></div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">취소</button>
-      <button class="btn-save" onclick="saveEdit()">저장하기</button>
+      <button class="btn-save" onclick="saveEdit()">저장</button>
     </div>
   </div>
 </div>
 
-<!-- 토스트 -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ===== STATE =====
 let bizType = 'simple';
-let ledger = JSON.parse(localStorage.getItem('sejum_ledger') || '[]');
+let ledger = JSON.parse(localStorage.getItem('sejum_ledger2') || '[]');
 let filterMode = 'all';
 let editingId = null;
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth() + 1;
+const TODAY = new Date();
 
 document.getElementById('yearDisplay').textContent = currentYear + '년';
-document.getElementById('incomeDate').value = new Date().toISOString().split('T')[0];
-document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+document.getElementById('incomeDate').value = TODAY.toISOString().split('T')[0];
+document.getElementById('expenseDate').value = TODAY.toISOString().split('T')[0];
+document.getElementById('staffDate').value = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+
+// ===== 4대보험 요율 (2024년 기준) =====
+const INSURANCE = {
+  // 사업주 부담
+  employer: {
+    pension: 0.045,    // 국민연금 4.5%
+    health: 0.03545,   // 건강보험 3.545%
+    longterm: 0.00457, // 장기요양 (건보료의 12.95% ≈ 0.459%)
+    employment: 0.009, // 고용보험 0.9%
+    accident: 0.009,   // 산재보험 0.9% (업종 평균)
+  },
+  // 근로자 부담
+  employee: {
+    pension: 0.045,
+    health: 0.03545,
+    longterm: 0.00457,
+    employment: 0.009,
+  }
+};
+const EMPLOYER_TOTAL = Object.values(INSURANCE.employer).reduce((a,b)=>a+b,0); // ≈ 10.657%
+const EMPLOYEE_TOTAL = Object.values(INSURANCE.employee).reduce((a,b)=>a+b,0); // ≈ 9.457%
+
+// 간이세액표 근사 (월급 기준 소득세, 부양가족 1명 기준)
+function calcWithholding(salary) {
+  if (salary <= 1060000) return 0;
+  if (salary <= 1500000) return Math.round((salary - 1060000) * 0.06);
+  if (salary <= 3000000) return Math.round(26400 + (salary - 1500000) * 0.15);
+  if (salary <= 4500000) return Math.round(251400 + (salary - 3000000) * 0.24);
+  if (salary <= 7800000) return Math.round(611400 + (salary - 4500000) * 0.35);
+  return Math.round(1766400 + (salary - 7800000) * 0.38);
+}
+
+// ===== 인건비 입력 미리보기 =====
+document.getElementById('staffAmount').addEventListener('input', updateStaffPreview);
+document.getElementById('staffType').addEventListener('change', updateStaffPreview);
+
+function updateStaffPreview() {
+  const salary = parseFloat(document.getElementById('staffAmount').value) || 0;
+  const type = document.getElementById('staffType').value;
+  const preview = document.getElementById('staffPreview');
+  const content = document.getElementById('staffPreviewContent');
+  if (salary <= 0) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+
+  let rows = [];
+  if (type === 'fulltime') {
+    const empInsurance = Math.round(salary * EMPLOYER_TOTAL);
+    const wh = calcWithholding(salary);
+    const totalCost = salary + empInsurance;
+    rows = [
+      ['월 급여 (직원 수령)', fmt(salary) + '원'],
+      ['4대보험 사업주 부담 (' + Math.round(EMPLOYER_TOTAL*100*10)/10 + '%)', fmt(empInsurance) + '원'],
+      ['─────────────────', ''],
+      ['사업주 실부담 합계', fmt(totalCost) + '원'],
+      ['원천징수 소득세 (10일 납부)', fmt(wh) + '원'],
+      ['직원 4대보험 공제액', fmt(Math.round(salary * EMPLOYEE_TOTAL)) + '원'],
+    ];
+  } else if (type === 'parttime') {
+    const wh = Math.round(salary * 0.022); // 일용직 2.2%
+    rows = [
+      ['일용직 급여', fmt(salary) + '원'],
+      ['원천징수 (2.2%)', fmt(wh) + '원'],
+      ['사업주 실부담', fmt(salary) + '원 (4대보험 별도)'],
+    ];
+  } else {
+    const wh = Math.round(salary * 0.033);
+    rows = [
+      ['프리랜서 지급액', fmt(salary) + '원'],
+      ['원천징수 (3.3%)', fmt(wh) + '원'],
+      ['실제 지급액', fmt(salary - wh) + '원'],
+    ];
+  }
+  content.innerHTML = rows.map(([l,v]) => v ? `<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:11px;color:var(--purple);opacity:0.8">${l}</span><span style="font-size:12px;font-weight:700;font-family:'DM Mono',monospace;color:var(--purple)">${v}</span></div>` : `<div style="border-top:1px solid rgba(106,58,170,0.15);margin:4px 0"></div>`).join('');
+}
 
 // ===== 페이지 전환 =====
-function switchPage(page) {
+function goPage(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('nav-' + page).classList.add('active');
-  if (page === 'ledger') renderLedger();
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
 }
 
-// ===== 사업자 유형 =====
-function toggleTypeMenu() {
-  document.getElementById('typeMenu').classList.toggle('open');
-}
-function setType(type, label) {
+function setType(type, btn) {
   bizType = type;
-  document.getElementById('typeCurrentBtn').textContent = label;
-  document.querySelectorAll('.type-menu-item').forEach(i => i.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('typeMenu').classList.remove('open');
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
   recalcAll();
 }
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.type-dropdown')) {
-    document.getElementById('typeMenu').classList.remove('open');
-  }
-});
 
-// ===== 입력 탭 =====
-function switchInputTab(tab) {
+function switchTab(tab) {
   document.getElementById('incomeForm').style.display = tab === 'income' ? 'block' : 'none';
   document.getElementById('expenseForm').style.display = tab === 'expense' ? 'block' : 'none';
-  document.getElementById('inputTabIncome').classList.toggle('active', tab === 'income');
-  document.getElementById('inputTabExpense').classList.toggle('active', tab === 'expense');
+  document.getElementById('staffForm').style.display = tab === 'staff' ? 'block' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['income','expense','staff'][i] === tab);
+  });
 }
 
-// ===== 매출/경비 입력 =====
+// ===== 입력 =====
 function addIncome() {
   const name = document.getElementById('incomeName').value.trim();
   const date = document.getElementById('incomeDate').value;
   const amount = parseFloat(document.getElementById('incomeAmount').value);
   const vat = document.getElementById('incomeVat').value;
   if (!name || !date || !amount || amount <= 0) { showToast('항목명, 날짜, 금액을 입력해주세요', 'error'); return; }
-  let baseAmount = amount;
-  if (vat === 'include') baseAmount = Math.round(amount / 1.1);
-  ledger.push({ id: Date.now(), type: 'income', name, date, amount: baseAmount, rawAmount: amount, vatType: vat, year: new Date(date).getFullYear() });
-  save();
-  document.getElementById('incomeName').value = '';
-  document.getElementById('incomeAmount').value = '';
-  showToast('매출이 추가됐어요 ✓', 'success');
-  recalcAll();
+  const baseAmount = vat === 'include' ? Math.round(amount / 1.1) : amount;
+  ledger.push({ id: Date.now(), type: 'income', name, date, amount: baseAmount, vatType: vat, year: new Date(date).getFullYear() });
+  save(); document.getElementById('incomeName').value = ''; document.getElementById('incomeAmount').value = '';
+  showToast('매출이 추가되었습니다 ✓', 'success'); recalcAll();
 }
 
 function addExpense() {
@@ -1032,11 +589,47 @@ function addExpense() {
   const etype = document.getElementById('expenseType').value;
   if (!name || !date || !amount || amount <= 0) { showToast('항목명, 날짜, 금액을 입력해주세요', 'error'); return; }
   ledger.push({ id: Date.now(), type: 'expense', name, date, amount, expenseType: etype, year: new Date(date).getFullYear() });
+  save(); document.getElementById('expenseName').value = ''; document.getElementById('expenseAmount').value = '';
+  showToast('경비가 추가되었습니다 ✓', 'success'); recalcAll();
+}
+
+function addStaff() {
+  const name = document.getElementById('staffName').value.trim();
+  const monthVal = document.getElementById('staffDate').value;
+  const salary = parseFloat(document.getElementById('staffAmount').value);
+  const stype = document.getElementById('staffType').value;
+  if (!name || !monthVal || !salary || salary <= 0) { showToast('항목명, 지급월, 급여를 입력해주세요', 'error'); return; }
+
+  const date = monthVal + '-01';
+  const year = parseInt(monthVal.split('-')[0]);
+
+  let employerInsurance = 0, withheld = 0, totalCost = 0;
+  if (stype === 'fulltime') {
+    employerInsurance = Math.round(salary * EMPLOYER_TOTAL);
+    withheld = calcWithholding(salary);
+    totalCost = salary + employerInsurance;
+  } else if (stype === 'parttime') {
+    withheld = Math.round(salary * 0.022);
+    totalCost = salary;
+  } else {
+    withheld = Math.round(salary * 0.033);
+    totalCost = salary;
+  }
+
+  ledger.push({
+    id: Date.now(), type: 'staff', name, date,
+    amount: salary,           // 실제 급여
+    totalCost,                // 사업주 실부담 (비용처리액)
+    employerInsurance,        // 사업주 4대보험
+    withheld,                 // 원천징수액
+    staffType: stype,
+    year, month: parseInt(monthVal.split('-')[1])
+  });
+
   save();
-  document.getElementById('expenseName').value = '';
-  document.getElementById('expenseAmount').value = '';
-  showToast('경비가 추가됐어요 ✓', 'success');
-  recalcAll();
+  document.getElementById('staffName').value = ''; document.getElementById('staffAmount').value = '';
+  document.getElementById('staffPreview').style.display = 'none';
+  showToast('인건비가 추가되었습니다 ✓', 'success'); recalcAll();
 }
 
 // ===== 세금 계산 =====
@@ -1045,56 +638,56 @@ function calcTaxes(year) {
   const totalIncome = yearData.filter(l => l.type === 'income').reduce((s, l) => s + l.amount, 0);
   const totalExpense = yearData.filter(l => l.type === 'expense').reduce((s, l) => s + l.amount, 0);
   const vatExpense = yearData.filter(l => l.type === 'expense' && l.expenseType === 'vat').reduce((s, l) => s + l.amount, 0);
+  const staffData = yearData.filter(l => l.type === 'staff');
+  const totalStaffCost = staffData.reduce((s, l) => s + l.totalCost, 0); // 비용처리 가능한 총액
+  const totalWithheld = staffData.reduce((s, l) => s + l.withheld, 0);  // 연간 원천징수 합계
+
   let vat = 0, it = 0, health = 0, pension = 0, vatDesc = '', itDesc = '';
+  // 총 비용 = 경비 + 인건비 전체 (사업주 4대보험 포함)
+  const totalDeductible = totalExpense + totalStaffCost;
 
   if (bizType === 'freelancer') {
     vat = 0; vatDesc = '해당없음 (면세/원천징수)';
-    const withheld = Math.round(totalIncome * 0.033);
-    const taxableIncome = Math.max(0, totalIncome - totalExpense);
-    it = Math.max(0, calcProgressiveTax(taxableIncome) - withheld);
+    const taxableIncome = Math.max(0, totalIncome - totalDeductible);
+    it = Math.max(0, calcProgressiveTax(taxableIncome) - Math.round(totalIncome * 0.033));
     itDesc = `과세표준 ${fmt(taxableIncome)} 기준`;
   } else if (bizType === 'simple') {
-    vat = Math.round(totalIncome * 0.03); vatDesc = `매출 × 3% (간이과세 평균)`;
-    const taxableIncome = Math.max(0, totalIncome - totalExpense);
+    vat = Math.round(totalIncome * 0.03); vatDesc = '매출 × 3% (간이과세 평균)';
+    const taxableIncome = Math.max(0, totalIncome - totalDeductible);
     it = calcProgressiveTax(taxableIncome); itDesc = `과세표준 ${fmt(taxableIncome)} 기준`;
   } else {
-    const vatPayable = totalIncome * 0.1; const vatCredit = vatExpense * 0.1;
-    vat = Math.max(0, Math.round(vatPayable - vatCredit));
-    vatDesc = `${fmt(Math.round(vatPayable))} - 매입공제 ${fmt(Math.round(vatCredit))}`;
-    const taxableIncome = Math.max(0, totalIncome - totalExpense);
+    vat = Math.max(0, Math.round(totalIncome * 0.1 - vatExpense * 0.1));
+    vatDesc = `${fmt(Math.round(totalIncome*0.1))} - 매입공제 ${fmt(Math.round(vatExpense*0.1))}`;
+    const taxableIncome = Math.max(0, totalIncome - totalDeductible);
     it = calcProgressiveTax(taxableIncome); itDesc = `과세표준 ${fmt(taxableIncome)} 기준`;
   }
 
-  let netForSocial;
-  if (totalExpense > 0) { netForSocial = Math.max(0, totalIncome - totalExpense); }
-  else { netForSocial = Math.max(0, Math.round(totalIncome * 0.359)); }
+  // 사업주 본인 건강/연금
+  const netForSocial = totalDeductible > 0 ? Math.max(0, totalIncome - totalDeductible) : Math.max(0, Math.round(totalIncome * 0.359));
   const healthBase = Math.round(netForSocial * 0.0709);
-  const longTermCare = Math.round(healthBase * 0.1295);
-  health = healthBase + longTermCare;
-  const pensionBase = Math.min(netForSocial, 70800000);
-  pension = Math.round(pensionBase * 0.09);
+  health = healthBase + Math.round(healthBase * 0.1295);
+  pension = Math.round(Math.min(netForSocial, 70800000) * 0.09);
 
   const totalTax = vat + it + health + pension;
-  const realIncome = totalIncome - totalExpense - totalTax;
-  return { totalIncome, totalExpense, vat, it, health, pension, totalTax, realIncome, vatDesc, itDesc };
+  const realIncome = totalIncome - totalDeductible - totalTax;
+
+  // 직원별 원천징수 월별
+  const monthlyWH = Array(12).fill(0);
+  staffData.forEach(s => { if (s.month >= 1 && s.month <= 12) monthlyWH[s.month - 1] += s.withheld; });
+
+  return { totalIncome, totalExpense, totalStaffCost, totalDeductible, vat, it, health, pension, totalTax, realIncome, vatDesc, itDesc, totalWithheld, monthlyWH };
 }
 
 function calcProgressiveTax(income) {
   const brackets = [
-    { limit: 14000000, rate: 0.06 },
-    { limit: 50000000, rate: 0.15, deduct: 1260000 },
-    { limit: 88000000, rate: 0.24, deduct: 5760000 },
-    { limit: 150000000, rate: 0.35, deduct: 15440000 },
-    { limit: 300000000, rate: 0.38, deduct: 19940000 },
-    { limit: 500000000, rate: 0.40, deduct: 25940000 },
-    { limit: 1000000000, rate: 0.42, deduct: 35940000 },
-    { limit: Infinity, rate: 0.45, deduct: 65940000 },
+    {limit:14000000,rate:0.06},{limit:50000000,rate:0.15,deduct:1260000},
+    {limit:88000000,rate:0.24,deduct:5760000},{limit:150000000,rate:0.35,deduct:15440000},
+    {limit:300000000,rate:0.38,deduct:19940000},{limit:500000000,rate:0.40,deduct:25940000},
+    {limit:1000000000,rate:0.42,deduct:35940000},{limit:Infinity,rate:0.45,deduct:65940000},
   ];
   const taxable = Math.max(0, income - 1500000);
   let tax = 0;
-  for (const b of brackets) {
-    if (taxable <= b.limit) { tax = taxable * b.rate - (b.deduct || 0); break; }
-  }
+  for (const b of brackets) { if (taxable <= b.limit) { tax = taxable * b.rate - (b.deduct||0); break; } }
   return Math.max(0, Math.round(tax * 1.1));
 }
 
@@ -1102,163 +695,197 @@ function calcProgressiveTax(income) {
 function recalcAll() {
   const t = calcTaxes(currentYear);
 
-  // 히어로
-  document.getElementById('heroTax').textContent = fmt(t.totalTax) + '원';
-  document.getElementById('heroMonthly').textContent = fmt(Math.round(t.totalTax / 12)) + '원';
-  document.getElementById('heroRevenue').textContent = fmt(t.totalIncome) + '원';
-  document.getElementById('heroNet').textContent = fmt(Math.max(0, t.realIncome)) + '원';
-
-  // 요약
   document.getElementById('totalRevenue').textContent = fmt(t.totalIncome) + '원';
   document.getElementById('totalExpense').textContent = fmt(t.totalExpense) + '원';
+  document.getElementById('totalStaff').textContent = fmt(t.totalStaffCost) + '원';
   document.getElementById('totalTax').textContent = fmt(t.totalTax) + '원';
   document.getElementById('netIncome').textContent = fmt(Math.max(0, t.realIncome)) + '원';
+  document.getElementById('reserveAmount').textContent = fmt(t.totalTax) + '원';
+  document.getElementById('monthlyReserve').textContent = fmt(Math.round(t.totalTax / 12)) + '원/월';
 
   const thisMonth = ledger.filter(l => l.year === currentYear && new Date(l.date).getMonth() + 1 === currentMonth);
-  const tmi = thisMonth.filter(l => l.type === 'income').reduce((s, l) => s + l.amount, 0);
-  const tme = thisMonth.filter(l => l.type === 'expense').reduce((s, l) => s + l.amount, 0);
-  document.getElementById('totalRevenueSub').textContent = `이번달 ${fmt(tmi)}원`;
-  document.getElementById('totalExpenseSub').textContent = `이번달 ${fmt(tme)}원`;
+  document.getElementById('totalRevenueSub').textContent = '이번달 ' + fmt(thisMonth.filter(l=>l.type==='income').reduce((s,l)=>s+l.amount,0)) + '원';
+  document.getElementById('totalExpenseSub').textContent = '이번달 ' + fmt(thisMonth.filter(l=>l.type==='expense').reduce((s,l)=>s+l.amount,0)) + '원';
 
-  // 세금 항목
   document.getElementById('vatAmount').textContent = fmt(t.vat) + '원';
   document.getElementById('itAmount').textContent = fmt(t.it) + '원';
   document.getElementById('vatDesc').textContent = t.vatDesc;
   document.getElementById('itDesc').textContent = t.itDesc;
-  document.getElementById('healthMonthly').textContent = fmt(Math.round(t.health / 12)) + '원/월';
+  document.getElementById('healthMonthly').textContent = fmt(Math.round(t.health/12)) + '원/월';
   document.getElementById('healthAnnual').textContent = '연간 ' + fmt(t.health) + '원';
-  document.getElementById('pensionMonthly').textContent = fmt(Math.round(t.pension / 12)) + '원/월';
+  document.getElementById('pensionMonthly').textContent = fmt(Math.round(t.pension/12)) + '원/월';
   document.getElementById('pensionAnnual').textContent = '연간 ' + fmt(t.pension) + '원';
 
-  // 세금 비율
   const ratio = t.totalIncome > 0 ? Math.round(t.totalTax / t.totalIncome * 100) : 0;
   document.getElementById('taxRatioLabel').textContent = ratio + '%';
   document.getElementById('taxRatioBar').style.width = Math.min(ratio, 100) + '%';
 
-  renderCalendar(t);
+  // 원천징수 이번달 알림
+  const whThis = t.monthlyWH[currentMonth - 1];
+  const whBanner = document.getElementById('whBanner');
+  if (whThis > 0) {
+    whBanner.style.display = 'block';
+    document.getElementById('whThisMonth').textContent = fmt(whThis) + '원';
+    const deadline = new Date(currentYear, currentMonth, 10);
+    const diff = Math.round((deadline - TODAY) / 86400000);
+    document.getElementById('whDeadline').textContent = `${currentMonth+1}월 10일 (D-${diff})`;
+  } else {
+    whBanner.style.display = 'none';
+  }
+
+  // 직원 세금 섹션
+  renderStaffTaxSection(t);
   renderNextPayments(t);
-  renderMonthlyBars();
+  renderCalendar(t);
+  renderLedger();
 }
 
-// ===== 캘린더 =====
+// ===== 직원 관련 납부 섹션 =====
+function renderStaffTaxSection(t) {
+  const section = document.getElementById('staffTaxSection');
+  const staffData = ledger.filter(l => l.year === currentYear && l.type === 'staff');
+  if (staffData.length === 0) {
+    section.innerHTML = '<div style="font-size:13px;color:var(--ink3);padding:8px 0 16px">인건비를 입력하면 직원 관련 납부 항목이 표시돼요</div>';
+    return;
+  }
+  const totalSalary = staffData.reduce((s,l)=>s+l.amount,0);
+  const totalEmpIns = staffData.reduce((s,l)=>s+l.employerInsurance,0);
+  const totalWH = staffData.reduce((s,l)=>s+l.withheld,0);
+  section.innerHTML = `
+    <div class="staff-summary">
+      <div class="staff-summary-title">👤 직원 관련 연간 납부 요약</div>
+      <div class="staff-row"><span class="staff-label">연간 급여 총액</span><span class="staff-value">${fmt(totalSalary)}원</span></div>
+      <div class="staff-row"><span class="staff-label">사업주 4대보험 부담분</span><span class="staff-value">${fmt(totalEmpIns)}원</span></div>
+      <div class="staff-row"><span class="staff-label">원천징수 소득세 (연간)</span><span class="staff-value">${fmt(totalWH)}원</span></div>
+      <div class="staff-row"><span class="staff-label">비용처리 가능 총액</span><span class="staff-value">${fmt(t.totalStaffCost)}원</span></div>
+      <div class="staff-row"><span class="staff-label">원천징수 납부 주기</span><span class="staff-value">매월 10일</span></div>
+    </div>
+  `;
+}
+
+// ===== 납부 일정 =====
 const TAX_SCHEDULE = [
-  { month: 1, name: '부가세 확정신고', key: 'vat', portion: 0.5 },
-  { month: 5, name: '종합소득세 신고', key: 'it', portion: 1.0 },
-  { month: 7, name: '부가세 확정신고', key: 'vat', portion: 0.5 },
-  { month: 8, name: '종소세 중간예납', key: 'it', portion: 0.5 },
-  { month: 11, name: '부가세 예정신고', key: 'vat', portion: 0.25 },
+  { month:1, name:'부가세 확정신고', key:'vat', portion:0.5, color:'accent' },
+  { month:5, name:'종합소득세 신고', key:'it', portion:1.0, color:'accent' },
+  { month:7, name:'부가세 확정신고', key:'vat', portion:0.5, color:'accent' },
+  { month:8, name:'종소세 중간예납', key:'it', portion:0.5, color:'accent' },
+  { month:11, name:'부가세 예정신고', key:'vat', portion:0.25, color:'accent' },
 ];
 const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
-function renderCalendar(t) {
-  const cal = document.getElementById('taxCalendar');
-  cal.innerHTML = '';
-  for (let m = 1; m <= 12; m++) {
-    const realEvents = TAX_SCHEDULE.filter(s => s.month === m && !(bizType === 'freelancer' && s.key === 'vat'));
-    const cell = document.createElement('div');
-    cell.className = 'cal-cell';
-    const label = document.createElement('div');
-    label.className = 'cal-cell-label';
-    label.textContent = m + '월';
-    const box = document.createElement('div');
-    box.className = 'cal-cell-box' + (realEvents.length > 0 ? ' has-tax' : '') + (m === currentMonth ? ' current' : '');
-    if (realEvents.length > 0) {
-      const totalAmt = realEvents.reduce((s, e) => s + Math.round(t[e.key] * e.portion), 0);
-      const dot = document.createElement('div'); dot.className = 'cal-cell-dot';
-      const amt = document.createElement('div'); amt.className = 'cal-cell-amt'; amt.textContent = fmtShort(totalAmt);
-      if (m >= currentMonth) {
-        const diff = Math.round((new Date(currentYear, m - 1, 25) - new Date()) / 86400000);
-        const dday = document.createElement('div'); dday.className = 'cal-cell-dday';
-        dday.textContent = diff === 0 ? 'D-Day' : diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
-        box.appendChild(dday);
-      }
-      box.appendChild(dot); box.appendChild(amt);
-    }
-    cell.appendChild(label); cell.appendChild(box);
-    cal.appendChild(cell);
-  }
-}
-
 function renderNextPayments(t) {
   const container = document.getElementById('nextPayments');
-  const upcoming = TAX_SCHEDULE
+  let upcoming = TAX_SCHEDULE
     .filter(s => s.month >= currentMonth)
     .filter(s => !(bizType === 'freelancer' && s.key === 'vat'))
-    .slice(0, 3);
-  if (upcoming.length === 0) {
-    container.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--ink3)">올해 남은 납부 일정이 없어요</div>';
-    return;
+    .slice(0, 2)
+    .map(s => ({
+      name: s.name,
+      month: s.month,
+      amt: Math.round(t[s.key] * s.portion),
+      bg: 'var(--accent-light)',
+      icon: '📅',
+      isWH: false
+    }));
+
+  // 원천징수 다음달 10일
+  const nextWHMonth = currentMonth <= 11 ? currentMonth + 1 : null;
+  if (nextWHMonth && t.monthlyWH[currentMonth - 1] > 0) {
+    upcoming.unshift({
+      name: `${currentMonth}월 급여 원천징수`,
+      month: nextWHMonth,
+      day: 10,
+      amt: t.monthlyWH[currentMonth - 1],
+      bg: 'var(--purple-light)',
+      icon: '👤',
+      isWH: true
+    });
   }
+
+  if (upcoming.length === 0) { container.innerHTML = '<div class="pay-item"><div style="font-size:13px;color:var(--ink3);padding:12px 0">올해 남은 납부 일정이 없어요</div></div>'; return; }
+
   container.innerHTML = upcoming.map(s => {
-    const amt = Math.round(t[s.key] * s.portion);
-    const diff = Math.round((new Date(currentYear, s.month - 1, 25) - new Date()) / 86400000);
-    const ddayStr = diff === 0 ? 'D-Day' : diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
-    return `<div class="payment-row">
-      <div class="payment-dday">
-        <div class="payment-dday-text">${ddayStr}</div>
-        <div class="payment-dday-label">${s.month}월 25일</div>
-      </div>
-      <div class="payment-info">
-        <div class="payment-name">${s.name}</div>
-        <div class="payment-date">${currentYear}년 ${s.month}월 25일</div>
-      </div>
-      <div class="payment-amount">${fmt(amt)}원</div>
+    const day = s.isWH ? 10 : 25;
+    const dday = Math.round((new Date(currentYear, s.month - 1, day) - TODAY) / 86400000);
+    const ddayStr = dday === 0 ? 'D-Day' : dday > 0 ? `D-${dday}` : `D+${Math.abs(dday)}`;
+    const color = dday <= 30 ? (s.isWH ? 'var(--purple)' : 'var(--accent)') : 'var(--ink3)';
+    const amtColor = s.isWH ? 'var(--purple)' : 'var(--accent)';
+    return `<div class="pay-item">
+      <div class="pay-icon" style="background:${s.bg}">${s.icon}</div>
+      <div class="pay-info"><div class="pay-name">${s.name}</div><div class="pay-date">${currentYear}년 ${s.month}월 ${day}일</div></div>
+      <div class="pay-right"><div class="pay-amount" style="color:${amtColor}">${fmt(s.amt)}원</div><div class="pay-dday" style="color:${color}">${ddayStr}</div></div>
     </div>`;
   }).join('');
 }
 
+// ===== 캘린더 =====
+function renderCalendar(t) {
+  const cal = document.getElementById('taxCalendar');
+  cal.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const taxEvents = TAX_SCHEDULE.filter(s => s.month === m).filter(e => !(bizType==='freelancer' && e.key==='vat'));
+    const hasWH = t.monthlyWH[m - 1] > 0;
+    const wrapper = document.createElement('div'); wrapper.className = 'cal-month';
+    const label = document.createElement('div'); label.className = 'cal-label'; label.textContent = MONTH_NAMES[m-1];
+    const dot = document.createElement('div');
+    let cls = 'cal-dot';
+    if (taxEvents.length > 0) cls += ' has-tax';
+    else if (hasWH) cls += ' has-wh';
+    if (m === currentMonth) cls += ' current';
+    dot.className = cls;
+    if (taxEvents.length > 0) {
+      const totalAmt = taxEvents.reduce((s,e)=>s+Math.round(t[e.key]*e.portion),0);
+      dot.innerHTML = `<div class="cal-tdot"></div><div class="cal-amt">${fmtShort(totalAmt)}</div>`;
+      if (m >= currentMonth) {
+        const diff = Math.round((new Date(currentYear,m-1,25)-TODAY)/86400000);
+        const dd = document.createElement('div'); dd.className='cal-dday';
+        dd.textContent = diff===0?'D-Day':diff>0?`D-${diff}`:`D+${Math.abs(diff)}`;
+        dot.appendChild(dd);
+      }
+    } else if (hasWH) {
+      dot.innerHTML = `<div class="cal-tdot purple"></div><div class="cal-amt purple">${fmtShort(t.monthlyWH[m-1])}</div>`;
+    }
+    wrapper.appendChild(label); wrapper.appendChild(dot); cal.appendChild(wrapper);
+  }
+}
+
 // ===== 내역 =====
-function setFilter(mode) {
+function setFilter(mode, btn) {
   filterMode = mode;
-  document.querySelectorAll('.filter-chip').forEach((b, i) => {
-    b.classList.toggle('active', ['all','income','expense'][i] === mode);
-  });
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
   renderLedger();
 }
 
 function renderLedger() {
-  const wrap = document.getElementById('ledgerList');
+  const list = document.getElementById('ledgerList');
   let data = ledger.filter(l => l.year === currentYear);
   if (filterMode !== 'all') data = data.filter(l => l.type === filterMode);
   data = [...data].sort((a, b) => b.date.localeCompare(a.date));
   if (data.length === 0) {
-    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">아직 내역이 없어요</div><div class="empty-sub">입력 탭에서 매출을 추가해보세요</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><p>아직 입력된 내역이 없어요</p><small>입력 탭에서 추가해보세요</small></div>`;
     return;
   }
-  wrap.innerHTML = data.map(l => `
-    <div class="ledger-item">
-      <div class="ledger-item-icon" style="background:${l.type === 'income' ? 'var(--green-light)' : 'var(--accent-light)'}">
-        ${l.type === 'income' ? '💰' : '🧾'}
+  const typeLabel = { income:'매출', expense:'경비', staff:'인건비' };
+  list.innerHTML = data.map(l => {
+    const isIncome = l.type === 'income';
+    const isStaff = l.type === 'staff';
+    const dispAmt = isStaff ? l.totalCost : l.amount;
+    const sub = isStaff ? `<div class="ledger-tag staff">인건비 · 원천징수 ${fmt(l.withheld)}원</div>` : `<div class="ledger-tag ${l.type}">${typeLabel[l.type]}</div>`;
+    return `<div class="ledger-item">
+      <div class="ledger-dot ${l.type}"></div>
+      <div class="ledger-info">
+        <div class="ledger-name">${l.name}</div>
+        <div class="ledger-date">${l.date}</div>
+        ${sub}
       </div>
-      <div class="ledger-item-info">
-        <div class="ledger-item-name">${l.name}</div>
-        <div class="ledger-item-date">${l.date}</div>
-      </div>
-      <div class="ledger-item-right">
-        <div class="ledger-item-amount ${l.type}">${l.type === 'income' ? '+' : '-'}${fmt(l.amount)}원</div>
-        <div class="ledger-item-actions">
-          <button class="mini-btn" onclick="openEdit(${l.id})">수정</button>
-          <button class="mini-btn del" onclick="deleteEntry(${l.id})">삭제</button>
+      <div class="ledger-right">
+        <div class="ledger-amount ${l.type}">${isIncome?'+':'-'}${fmt(dispAmt)}원</div>
+        <div class="ledger-actions">
+          <button class="action-btn" onclick="openEdit(${l.id})">수정</button>
+          <button class="action-btn del" onclick="deleteEntry(${l.id})">삭제</button>
         </div>
       </div>
-    </div>
-  `).join('');
-}
-
-// ===== 월별 차트 =====
-function renderMonthlyBars() {
-  const container = document.getElementById('monthlyBars');
-  const monthlyIncome = Array(12).fill(0);
-  ledger.filter(l => l.year === currentYear && l.type === 'income').forEach(l => {
-    monthlyIncome[new Date(l.date).getMonth()] += l.amount;
-  });
-  const maxVal = Math.max(...monthlyIncome, 1);
-  container.innerHTML = monthlyIncome.map((inc, i) => {
-    const h = Math.round((inc / maxVal) * 70);
-    const isCurrent = i + 1 === currentMonth;
-    return `<div class="bar-group">
-      <div class="bar income-bar" style="height:${h}px;${isCurrent ? 'opacity:1' : 'opacity:0.6'}"></div>
-      <div class="bar-label" style="${isCurrent ? 'color:var(--ink);font-weight:700' : ''}">${i+1}</div>
     </div>`;
   }).join('');
 }
@@ -1270,34 +897,37 @@ function openEdit(id) {
   editingId = id;
   document.getElementById('editName').value = entry.name;
   document.getElementById('editDate').value = entry.date;
-  document.getElementById('editAmount').value = entry.amount;
+  document.getElementById('editAmount').value = entry.type === 'staff' ? entry.amount : entry.amount;
   document.getElementById('editModal').classList.add('open');
 }
-function closeModal() {
-  document.getElementById('editModal').classList.remove('open');
-  editingId = null;
-}
+function closeModal() { document.getElementById('editModal').classList.remove('open'); editingId = null; }
 function saveEdit() {
   if (!editingId) return;
   const idx = ledger.findIndex(l => l.id === editingId);
   if (idx === -1) return;
+  const newAmount = parseFloat(document.getElementById('editAmount').value) || ledger[idx].amount;
   ledger[idx].name = document.getElementById('editName').value;
   ledger[idx].date = document.getElementById('editDate').value;
-  ledger[idx].amount = parseFloat(document.getElementById('editAmount').value) || ledger[idx].amount;
   ledger[idx].year = new Date(ledger[idx].date).getFullYear();
-  save(); closeModal();
-  showToast('수정됐어요 ✓', 'success');
-  recalcAll(); renderLedger();
+  ledger[idx].amount = newAmount;
+  // 인건비면 재계산
+  if (ledger[idx].type === 'staff') {
+    const stype = ledger[idx].staffType;
+    const empIns = stype === 'fulltime' ? Math.round(newAmount * EMPLOYER_TOTAL) : 0;
+    ledger[idx].employerInsurance = empIns;
+    ledger[idx].totalCost = newAmount + empIns;
+    ledger[idx].withheld = stype === 'fulltime' ? calcWithholding(newAmount) : stype === 'parttime' ? Math.round(newAmount*0.022) : Math.round(newAmount*0.033);
+  }
+  save(); closeModal(); showToast('수정되었습니다 ✓', 'success'); recalcAll();
 }
 function deleteEntry(id) {
-  if (!confirm('삭제할까요?')) return;
+  if (!confirm('이 내역을 삭제할까요?')) return;
   ledger = ledger.filter(l => l.id !== id);
-  save(); showToast('삭제됐어요', 'success');
-  recalcAll(); renderLedger();
+  save(); showToast('삭제되었습니다', 'success'); recalcAll();
 }
 
 // ===== UTILS =====
-function save() { localStorage.setItem('sejum_ledger', JSON.stringify(ledger)); }
+function save() { localStorage.setItem('sejum_ledger2', JSON.stringify(ledger)); }
 function fmt(n) { if (isNaN(n)) return '0'; return Math.round(n).toLocaleString('ko-KR'); }
 function fmtShort(n) {
   if (n >= 100000000) return Math.round(n/100000000)+'억';
@@ -1307,13 +937,10 @@ function fmtShort(n) {
 let toastTimer;
 function showToast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast ' + type + ' show';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  t.textContent = msg; t.className = 'toast '+type+' show';
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
 }
-document.getElementById('editModal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
+document.getElementById('editModal').addEventListener('click', function(e) { if (e.target===this) closeModal(); });
 
 recalcAll();
 </script>
