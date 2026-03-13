@@ -914,19 +914,19 @@ tbody td {
               <div class="tax-item-desc">소득 × 7.09% + 장기요양 12.95%</div>
             </div>
             <div>
-              <div class="tax-item-amount green" id="healthAmount">0원</div>
-              <div class="tax-item-date">매월 납부</div>
+              <div class="tax-item-amount green" id="healthMonthly">0원/월</div>
+              <div class="tax-item-date" id="healthAnnual">연간 0원</div>
             </div>
           </div>
           <div class="tax-item">
             <div class="tax-icon" style="background:var(--yellow-light)">💼</div>
             <div class="tax-item-info">
               <div class="tax-item-name">국민연금</div>
-              <div class="tax-item-desc">소득 × 9% (상한 553만)</div>
+              <div class="tax-item-desc">소득 × 9% (상한 590만/월)</div>
             </div>
             <div>
-              <div class="tax-item-amount" style="color:var(--yellow)" id="pensionAmount">0원</div>
-              <div class="tax-item-date">매월 납부</div>
+              <div class="tax-item-amount" style="color:var(--yellow)" id="pensionMonthly">0원/월</div>
+              <div class="tax-item-date" id="pensionAnnual">연간 0원</div>
             </div>
           </div>
         </div>
@@ -1201,10 +1201,18 @@ function recalcAll() {
   // 세금 항목
   document.getElementById('vatAmount').textContent = fmt(t.vat) + '원';
   document.getElementById('itAmount').textContent = fmt(t.it) + '원';
-  document.getElementById('healthAmount').textContent = fmt(t.health) + '원';
-  document.getElementById('pensionAmount').textContent = fmt(t.pension) + '원';
   document.getElementById('vatDesc').textContent = t.vatDesc;
   document.getElementById('itDesc').textContent = t.itDesc;
+
+  // 건강보험료 월 납부액
+  const healthMonthly = Math.round(t.health / 12);
+  document.getElementById('healthMonthly').textContent = fmt(healthMonthly) + '원/월';
+  document.getElementById('healthAnnual').textContent = '연간 ' + fmt(t.health) + '원';
+
+  // 국민연금 월 납부액
+  const pensionMonthly = Math.round(t.pension / 12);
+  document.getElementById('pensionMonthly').textContent = fmt(pensionMonthly) + '원/월';
+  document.getElementById('pensionAnnual').textContent = '연간 ' + fmt(t.pension) + '원';
 
   // 왼쪽 패널
   document.getElementById('reserveAmount').textContent = fmt(t.totalTax) + '원';
